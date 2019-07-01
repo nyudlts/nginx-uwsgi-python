@@ -1,9 +1,8 @@
 # Use the standard Nginx image from Docker Hub
-FROM centos/nginx-112-centos7
+FROM centos:7
 
 ENV HOME=/opt/repo
 
-USER root 
 # install python, uwsgi, and supervisord
 #RUN yum update #&& yum install -y --setopt=tsflags=nodocs supervisor #uwsgi python python-pip #procps vim && \
     #/usr/bin/pip install uwsgi==2.0.17 flask==1.0.2
@@ -13,7 +12,7 @@ USER root
      #pip install uwsgi==2.0.17 flask==1.0.2
 
 
-RUN yum install -y \
+RUN yum install  -y --setopt=tsflags=nodocs \
         yum-utils \
         curl \
         git \
@@ -50,25 +49,32 @@ RUN chmod -R g=u /etc/profile.d/enablepython36.sh /opt/rh/rh-python36 && \
 SHELL ["/bin/bash", "-c"]
 RUN pip --version && pip install --upgrade pip pipenv setuptools wheel supervisor  uwsgi==2.0.17 flask==1.0.2
 
-
 # set the locale
 RUN localedef --quiet -c -i en_US -f UTF-8 en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
+#Install nginx (nginx centos image had python2 installed so too much clean up)
+RUN yum install -y nginx && \
+    yum clean all && \
+    rm -rf /etc/nginx /usr/share/nginx/html && \
+    mkdir -p /etc/nginx /usr/share/nginx/html
+
 # Source code file
 COPY ./src ${HOME}/src
 
 # Copy the configuration file from the current directory and paste 
 # it inside the container to use it as Nginx's default config.
-COPY ./deployment/nginx.conf /etc/nginx.d/nginx.conf
+COPY ./deployment/nginx.conf /etc/nginx/nginx.conf
+COPY ./deployment/mime.types /etc/nginx/mime.types
+COPY ./deployment/uwsgi_params /etc/nginx/uwsgi_params
 
 # setup NGINX config
 RUN mkdir -p /spool/nginx /run/pid /var/cache/nginx && \
-    chmod -R 777 /var/log/nginx /var/cache/nginx /etc/nginx.d /var/run /run /run/pid /spool/nginx && \
-    chgrp -R 0 /var/log/nginx /var/cache/nginx /etc/nginx.d /var/run /run /run/pid /spool/nginx && \
-    chmod -R g+rwX /var/log/nginx /var/cache/nginx /etc/nginx.d /var/run /run /run/pid /spool/nginx
+    chmod -R 777 /var/log/nginx /var/cache/nginx /etc/nginx /var/run /run /run/pid /spool/nginx && \
+    chgrp -R 0 /var/log/nginx /var/cache/nginx /etc/nginx /var/run /run /run/pid /spool/nginx && \
+    chmod -R g+rwX /var/log/nginx /var/cache/nginx /etc/nginx /var/run /run /run/pid /spool/nginx
     #rm /etc/nginx/conf.d/default.conf
 
 # Copy the base uWSGI ini file to enable default dynamic uwsgi process number
@@ -79,7 +85,7 @@ RUN mkdir -p /etc/uwsgi/apps-enabled/ && \
     echo_supervisord_conf > /etc/supervisor/supervisord.conf
 
 
-COPY ./deployment/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY ./deployment/supervisord.conf /etc/supervisor/supervisord.conf
 RUN mkdir -p /var/log/supervisor && \  
    touch /var/log/supervisor/supervisord.log
 
@@ -96,12 +102,11 @@ RUN ln -s /usr/local/bin/docker-entrypoint.sh / && \
     chown -R nginx:root /usr/local/bin/entrypoint.sh
 
 # https://docs.openshift.com/container-platform/3.3/creating_images/guidelines.html
-RUN chgrp -R 0 /var/log /var/cache /run/pid /spool/nginx /var/run /run /tmp /etc/uwsgi /etc/nginx.d && \
-    chmod -R g+rwX /var/log /var/cache /run/pid /spool/nginx /var/run /run /tmp /etc/uwsgi /etc/nginx.d && \
+RUN chgrp -R 0 /var/log /var/cache /run/pid /spool/nginx /var/run /run /tmp /etc/uwsgi /etc/nginx && \
+    chmod -R g+rwX /var/log /var/cache /run/pid /spool/nginx /var/run /run /tmp /etc/uwsgi /etc/nginx && \
     chown -R nginx:root ${HOME} && \
     chmod -R 777 ${HOME} /etc/passwd
 
-USER default
 # enter
 WORKDIR ${HOME}
 ENTRYPOINT ["entrypoint.sh"]

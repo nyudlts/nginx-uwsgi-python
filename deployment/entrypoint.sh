@@ -13,8 +13,10 @@ fi
 
 # https://success.docker.com/article/use-a-script-to-initialize-stateful-container-data
 if [ "$1" = 'supervisord' ]; then
-    exec supervisord
+    supervisord
+    #exec ls /usr/sbin
+    exec ps -ef
+    #ps -ef
 fi
-
 
 exec "$@"
