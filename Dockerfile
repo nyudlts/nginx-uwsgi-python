@@ -82,7 +82,8 @@ COPY ./deployment/supervisord.conf /etc/supervisor/supervisord.conf
 RUN mkdir -p /var/log/supervisor && \  
    touch /var/log/supervisor/supervisord.log
 
-EXPOSE 8080:8080
+EXPOSE 8080
+EXPOSE 8443       
 
 # setup entrypoint
 COPY ./deployment/entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -99,6 +100,33 @@ RUN chgrp -R 0 /var/log /var/cache /run/pid /spool/nginx /var/run /run /tmp /etc
     chmod -R g+rwX /var/log /var/cache /run/pid /spool/nginx /var/run /run /tmp /etc/uwsgi /etc/nginx && \
     chown -R nginx:root ${HOME} && \
     chmod -R 777 ${HOME} /etc/passwd
+
+#Added npm
+# Create working directory
+ENV WORKING_DIR=/opt/invenio
+ENV INVENIO_INSTANCE_PATH=${WORKING_DIR}/var/instance
+RUN mkdir -p ${INVENIO_INSTANCE_PATH}
+
+# copy everything inside /src
+RUN mkdir -p ${WORKING_DIR}/src
+WORKDIR ${WORKING_DIR}/src
+
+# Set `npm` global under Invenio instance path
+RUN mkdir ${INVENIO_INSTANCE_PATH}/.npm-global
+ENV NPM_CONFIG_PREFIX=$INVENIO_INSTANCE_PATH/.npm-global
+RUN mkdir npm_install && cd npm_install && \
+    curl -SsL https://registry.npmjs.org/npm/-/npm-6.4.1.tgz | tar -xzf - && \
+    cd package && \
+    node bin/npm-cli.js rm npm -g && \
+    node bin/npm-cli.js install -g $(node bin/npm-cli.js pack | tail -1) && \
+    cd ../.. && rm -rf npm_install
+
+RUN npm config set prefix '${INVENIO_INSTANCE_PATH}/.npm-global'
+ENV PATH=${INVENIO_INSTANCE_PATH}/.npm-global/bin:$PATH
+
+# Set folder permissions
+RUN chgrp -R 0 ${WORKING_DIR} && \
+    chmod -R g=u ${WORKING_DIR}
 
 # enter
 WORKDIR ${HOME}
