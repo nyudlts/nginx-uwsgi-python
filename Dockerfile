@@ -3,14 +3,7 @@ FROM centos:7
 
 ENV HOME=/opt/repo
 
-# install python, uwsgi, and supervisord
-#RUN yum update #&& yum install -y --setopt=tsflags=nodocs supervisor #uwsgi python python-pip #procps vim && \
-    #/usr/bin/pip install uwsgi==2.0.17 flask==1.0.2
-
-#RUN  yum install -y  supervisor
-     # uwsgi python  procps vim 
-     #pip install uwsgi==2.0.17 flask==1.0.2
-
+USER root
 
 RUN yum install  -y --setopt=tsflags=nodocs \
         yum-utils \
