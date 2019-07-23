@@ -1,7 +1,7 @@
-# Use the standard Nginx image from Docker Hub
+# Use the standard centos  image from Docker Hub
 FROM centos:7
 
-ENV HOME=/opt/repo
+ENV HOME=${APP_HOME}
 
 USER root
 
@@ -40,7 +40,7 @@ ENV BASH_ENV=/etc/profile.d/enablepython36.sh
 RUN chmod -R g=u /etc/profile.d/enablepython36.sh /opt/rh/rh-python36 && \
     chgrp -R 0 /etc/profile.d/enablepython36.sh /opt/rh/rh-python36
 SHELL ["/bin/bash", "-c"]
-RUN pip --version && pip install --upgrade pip pipenv setuptools wheel supervisor  uwsgi==2.0.17 flask==1.0.2
+RUN pip3 --version && pip3 install --upgrade pip pipenv setuptools wheel supervisor  uwsgi==2.0.17 flask==1.0.2
 
 # set the locale
 RUN localedef --quiet -c -i en_US -f UTF-8 en_US.UTF-8
@@ -101,7 +101,7 @@ RUN chgrp -R 0 /var/log /var/cache /run/pid /spool/nginx /var/run /run /tmp /etc
     chown -R nginx:root ${HOME} && \
     chmod -R 777 ${HOME} /etc/passwd
 
-#Added npm
+
 # Create working directory
 ENV WORKING_DIR=/opt/invenio
 ENV INVENIO_INSTANCE_PATH=${WORKING_DIR}/var/instance
@@ -129,6 +129,6 @@ RUN chgrp -R 0 ${WORKING_DIR} && \
     chmod -R g=u ${WORKING_DIR}
 
 # enter
-WORKDIR ${HOME}
+WORKDIR ${HOME}/src
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["supervisord"]
