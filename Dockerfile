@@ -1,7 +1,7 @@
 # Use the standard centos  image from Docker Hub
 FROM centos:7
 
-ENV HOME=${APP_HOME}
+ARG APP_HOME=${APP_HOME}
 
 USER root
 
@@ -55,7 +55,7 @@ RUN yum install -y nginx && \
     mkdir -p /etc/nginx /usr/share/nginx/html
 
 # Source code file
-COPY ./src ${HOME}/src
+COPY ./src $APP_HOME/src
 
 # Copy the configuration file from the current directory and paste 
 # it inside the container to use it as Nginx's default config.
@@ -98,18 +98,18 @@ RUN ln -s /usr/local/bin/docker-entrypoint.sh / && \
 # https://docs.openshift.com/container-platform/3.3/creating_images/guidelines.html
 RUN chgrp -R 0 /var/log /var/cache /run/pid /spool/nginx /var/run /run /tmp /etc/uwsgi /etc/nginx && \
     chmod -R g+rwX /var/log /var/cache /run/pid /spool/nginx /var/run /run /tmp /etc/uwsgi /etc/nginx && \
-    chown -R nginx:root ${HOME} && \
-    chmod -R 777 ${HOME} /etc/passwd
+    chown -R nginx:root $APP_HOME && \
+    chmod -R 777 $APP_HOME /etc/passwd
 
 
 # Create working directory
-ENV WORKING_DIR=/opt/invenio
-ENV INVENIO_INSTANCE_PATH=${WORKING_DIR}/var/instance
+
+ENV INVENIO_INSTANCE_PATH=$APP_HOME/var/instance
 RUN mkdir -p ${INVENIO_INSTANCE_PATH}
 
 # copy everything inside /src
-RUN mkdir -p ${WORKING_DIR}/src
-WORKDIR ${WORKING_DIR}/src
+RUN mkdir -p $APP_HOME/src
+WORKDIR $APP_HOME/src
 
 # Set `npm` global under Invenio instance path
 RUN mkdir ${INVENIO_INSTANCE_PATH}/.npm-global
@@ -125,10 +125,9 @@ RUN npm config set prefix '${INVENIO_INSTANCE_PATH}/.npm-global'
 ENV PATH=${INVENIO_INSTANCE_PATH}/.npm-global/bin:$PATH
 
 # Set folder permissions
-RUN chgrp -R 0 ${WORKING_DIR} && \
-    chmod -R g=u ${WORKING_DIR}
+RUN chgrp -R 0 $APP_HOME && \
+    chmod -R g=u $APP_HOME
 
 # enter
-WORKDIR ${HOME}/src
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["supervisord"]
